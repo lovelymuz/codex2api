@@ -16,6 +16,7 @@ function maskKey(key: string): string {
 
 export default function Settings() {
   const [newKeyName, setNewKeyName] = useState('')
+  const [newKeyValue, setNewKeyValue] = useState('')
   const [createdKey, setCreatedKey] = useState<string | null>(null)
   const { toast, showToast } = useToast()
 
@@ -40,9 +41,10 @@ export default function Settings() {
 
   const handleCreateKey = async () => {
     try {
-      const result = await api.createAPIKey(newKeyName.trim() || 'default')
+      const result = await api.createAPIKey(newKeyName.trim() || 'default', newKeyValue.trim() || undefined)
       setCreatedKey(result.key)
       setNewKeyName('')
+      setNewKeyValue('')
       showToast('密钥创建成功')
       void reload()
     } catch (error) {
@@ -91,21 +93,28 @@ export default function Settings() {
           <h3 style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>API 密钥</h3>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
           <input
             className="form-input"
-            style={{ flex: 1, minHeight: 40 }}
+            style={{ flex: '1 1 120px', minHeight: 40 }}
             placeholder="密钥名称（可选）"
             value={newKeyName}
             onChange={(event: ChangeEvent<HTMLInputElement>) => setNewKeyName(event.target.value)}
+          />
+          <input
+            className="form-input"
+            style={{ flex: '2 1 240px', minHeight: 40 }}
+            placeholder="自定义密钥（留空则自动生成）"
+            value={newKeyValue}
+            onChange={(event: ChangeEvent<HTMLInputElement>) => setNewKeyValue(event.target.value)}
             onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
               if (event.key === 'Enter') {
                 void handleCreateKey()
               }
             }}
           />
-          <button className="btn btn-primary" onClick={() => void handleCreateKey()}>
-            生成密钥
+          <button className="btn btn-primary" onClick={() => void handleCreateKey()} style={{ whiteSpace: 'nowrap' }}>
+            创建密钥
           </button>
         </div>
 

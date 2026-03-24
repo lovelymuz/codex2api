@@ -63,10 +63,10 @@ export const api = {
   getUsageStats: () => request<UsageStats>('/usage/stats'),
   getUsageLogs: (limit = 50) => request<UsageLogsResponse>(`/usage/logs?limit=${limit}`),
   getAPIKeys: () => request<APIKeysResponse>('/keys'),
-  createAPIKey: (name: string) =>
+  createAPIKey: (name: string, key?: string) =>
     request<CreateAPIKeyResponse>('/keys', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({ name, ...(key ? { key } : {}) }),
     }),
   deleteAPIKey: (id: number) =>
     request<MessageResponse>(`/keys/${id}`, { method: 'DELETE' }),

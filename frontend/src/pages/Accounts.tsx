@@ -38,8 +38,8 @@ export default function Accounts() {
 
     setSubmitting(true)
     try {
-      await api.addAccount(addForm)
-      showToast('账号添加成功')
+      const result = await api.addAccount(addForm)
+      showToast(result.message || '账号添加成功')
       setShowAdd(false)
       setAddForm({ name: '', refresh_token: '', proxy_url: '' })
       void reload()
@@ -175,7 +175,7 @@ export default function Accounts() {
           <label>Refresh Token *</label>
           <textarea
             className="form-input"
-            placeholder="粘贴 Refresh Token"
+            placeholder="每行一个 Refresh Token，支持批量粘贴"
             value={addForm.refresh_token}
             onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
               setAddForm((form) => ({ ...form, refresh_token: event.target.value }))

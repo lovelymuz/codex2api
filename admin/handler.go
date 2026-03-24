@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/codex2api/auth"
@@ -140,7 +141,7 @@ type addAccountReq struct {
 	ProxyURL     string `json:"proxy_url"`
 }
 
-// AddAccount 添加新账号
+// AddAccount 添加新账号（支持批量：refresh_token 按行分割）
 func (h *Handler) AddAccount(c *gin.Context) {
 	var req addAccountReq
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -153,42 +154,73 @@ func (h *Handler) AddAccount(c *gin.Context) {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
-	defer cancel()
-
-	name := req.Name
-	if name == "" {
-		name = "account-new"
+	// 按行分割，支持批量添加
+	lines := strings.Split(req.RefreshToken, "\n")
+	var tokens []string
+	for _, line := range lines {
+		t := strings.TrimSpace(line)
+		if t != "" {
+			tokens = append(tokens, t)
+		}
 	}
 
-	id, err := h.db.InsertAccount(ctx, name, req.RefreshToken, req.ProxyURL)
-	if err != nil {
-		writeError(c, http.StatusInternalServerError, "添加账号失败: "+err.Error())
+	if len(tokens) == 0 {
+		writeError(c, http.StatusBadRequest, "未找到有效的 Refresh Token")
 		return
 	}
 
-	// 热加载：直接加入内存池并刷新 AT
-	newAcc := &auth.Account{
-		DBID:         id,
-		RefreshToken: req.RefreshToken,
-		ProxyURL:     req.ProxyURL,
-	}
-	h.store.AddAccount(newAcc)
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
 
-	// 异步刷新 AT
-	go func() {
-		refreshCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		if err := h.store.RefreshSingle(refreshCtx, id); err != nil {
-			log.Printf("新账号 %d 刷新失败: %v", id, err)
-		} else {
-			log.Printf("新账号 %d 刷新成功，已加入代理池", id)
+	successCount := 0
+	failCount := 0
+
+	for i, rt := range tokens {
+		name := req.Name
+		if name == "" {
+			name = fmt.Sprintf("account-%d", i+1)
+		} else if len(tokens) > 1 {
+			name = fmt.Sprintf("%s-%d", req.Name, i+1)
 		}
-	}()
 
-	c.JSON(http.StatusOK, createAccountResponse{
-		ID:      id,
-		Message: fmt.Sprintf("账号添加成功，正在后台刷新 AT"),
+		id, err := h.db.InsertAccount(ctx, name, rt, req.ProxyURL)
+		if err != nil {
+			log.Printf("批量添加账号 %d 失败: %v", i+1, err)
+			failCount++
+			continue
+		}
+
+		successCount++
+
+		// 热加载：直接加入内存池
+		newAcc := &auth.Account{
+			DBID:         id,
+			RefreshToken: rt,
+			ProxyURL:     req.ProxyURL,
+		}
+		h.store.AddAccount(newAcc)
+
+		// 异步刷新 AT
+		go func(accountID int64) {
+			refreshCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			if err := h.store.RefreshSingle(refreshCtx, accountID); err != nil {
+				log.Printf("新账号 %d 刷新失败: %v", accountID, err)
+			} else {
+				log.Printf("新账号 %d 刷新成功，已加入代理池", accountID)
+			}
+		}(id)
+	}
+
+	msg := fmt.Sprintf("成功添加 %d 个账号", successCount)
+	if failCount > 0 {
+		msg += fmt.Sprintf("，%d 个失败", failCount)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": msg,
+		"success": successCount,
+		"failed":  failCount,
 	})
 }
 
@@ -300,6 +332,7 @@ func (h *Handler) ListAPIKeys(c *gin.Context) {
 
 type createKeyReq struct {
 	Name string `json:"name"`
+	Key  string `json:"key"`
 }
 
 // generateKey 生成随机 API Key
@@ -319,7 +352,10 @@ func (h *Handler) CreateAPIKey(c *gin.Context) {
 		req.Name = "default"
 	}
 
-	key := generateKey()
+	key := req.Key
+	if key == "" {
+		key = generateKey()
+	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 5*time.Second)
 	defer cancel()

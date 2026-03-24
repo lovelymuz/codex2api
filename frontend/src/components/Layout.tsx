@@ -1,5 +1,6 @@
 import type { PropsWithChildren, ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
+import logoImg from '../assets/logo.png'
 
 type NavItem = {
   to: string
@@ -52,10 +53,14 @@ export default function Layout({ children }: PropsWithChildren) {
         <aside className="sidebar">
           <div className="sidebar-panel">
             <div className="sidebar-brand">
-              <span className="brand-kicker">Codex Workspace</span>
-              <h1>Codex2API</h1>
-              <p>用更柔和、更清晰的方式管理账号池与请求流量。</p>
-              <div className="version">v2.0 管理后台</div>
+              <div className="brand-row">
+                <img src={logoImg} alt="Codex2API" className="brand-logo" />
+                <div className="brand-text">
+                  <h1>Codex2API</h1>
+                  <span className="version">v2.0</span>
+                </div>
+              </div>
+              <p>管理账号池与请求流量的控制台</p>
             </div>
 
             <nav className="sidebar-nav" aria-label="主导航">
@@ -85,8 +90,8 @@ export default function Layout({ children }: PropsWithChildren) {
 
         <main className="main-content">
           <header className="mobile-topbar">
-            <div>
-              <span className="brand-kicker">Codex Workspace</span>
+            <div className="brand-row">
+              <img src={logoImg} alt="Codex2API" className="brand-logo-sm" />
               <strong>Codex2API</strong>
             </div>
             <span className="workspace-chip">在线</span>
