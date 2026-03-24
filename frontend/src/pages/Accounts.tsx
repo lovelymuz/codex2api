@@ -418,6 +418,9 @@ export default function Accounts() {
         {testingAccount && (
           <TestConnectionModal
             account={testingAccount}
+            onSettled={() => {
+              void reloadSilently()
+            }}
             onClose={() => setTestingAccount(null)}
           />
         )}
@@ -467,13 +470,28 @@ function formatTestErrorMessage(message: string) {
   }
 }
 
-function TestConnectionModal({ account, onClose }: { account: AccountRow; onClose: () => void }) {
+function TestConnectionModal({
+  account,
+  onClose,
+  onSettled,
+}: {
+  account: AccountRow
+  onClose: () => void
+  onSettled: () => void
+}) {
   const [output, setOutput] = useState<string[]>([])
   const [status, setStatus] = useState<'connecting' | 'streaming' | 'success' | 'error'>('connecting')
   const [errorMsg, setErrorMsg] = useState('')
   const [model, setModel] = useState('')
   const abortRef = useRef<AbortController | null>(null)
   const outputEndRef = useRef<HTMLDivElement>(null)
+  const settledRef = useRef(false)
+
+  const markSettled = useCallback(() => {
+    if (settledRef.current) return
+    settledRef.current = true
+    onSettled()
+  }, [onSettled])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -494,6 +512,7 @@ function TestConnectionModal({ account, onClose }: { account: AccountRow; onClos
           } catch { /* ignore */ }
           setStatus('error')
           setErrorMsg(msg)
+          markSettled()
           return
         }
 
@@ -501,6 +520,7 @@ function TestConnectionModal({ account, onClose }: { account: AccountRow; onClos
         if (!reader) {
           setStatus('error')
           setErrorMsg('浏览器不支持流式读取')
+          markSettled()
           return
         }
 
@@ -534,10 +554,12 @@ function TestConnectionModal({ account, onClose }: { account: AccountRow; onClos
                   break
                 case 'test_complete':
                   setStatus(event.success ? 'success' : 'error')
+                  markSettled()
                   break
                 case 'error':
                   setStatus('error')
                   setErrorMsg(event.error || '未知错误')
+                  markSettled()
                   break
               }
             } catch { /* ignore non-JSON lines */ }
@@ -547,6 +569,7 @@ function TestConnectionModal({ account, onClose }: { account: AccountRow; onClos
         if (err instanceof DOMException && err.name === 'AbortError') return
         setStatus('error')
         setErrorMsg(err instanceof Error ? err.message : '连接失败')
+        markSettled()
       }
     }
 
@@ -555,7 +578,7 @@ function TestConnectionModal({ account, onClose }: { account: AccountRow; onClos
     return () => {
       controller.abort()
     }
-  }, [account.id])
+  }, [account.id, markSettled])
 
   useEffect(() => {
     outputEndRef.current?.scrollIntoView({ behavior: 'smooth' })
