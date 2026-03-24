@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import PageHeader from '../components/PageHeader'
@@ -27,14 +26,6 @@ function formatTokens(value?: number | null): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`
   if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`
   return value.toLocaleString()
-}
-
-const statIcons: Record<string, ReactNode> = {
-  requests: <Activity className="size-[22px]" />,
-  tokens: <Box className="size-[22px]" />,
-  rpm: <Clock className="size-[22px]" />,
-  tpm: <Zap className="size-[22px]" />,
-  error: <AlertTriangle className="size-[22px]" />,
 }
 
 export default function Usage() {
@@ -102,88 +93,88 @@ export default function Usage() {
         />
 
         {/* Top stats: 2 columns */}
-        <div className="grid grid-cols-2 gap-4 mb-3 max-sm:grid-cols-1">
-          <Card>
-            <CardContent className="flex flex-col gap-4 min-h-[180px] p-6">
+        <div className="grid grid-cols-2 gap-3 mb-3 max-sm:grid-cols-1">
+          <Card className="py-0">
+            <CardContent className="flex flex-col gap-2 p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold tracking-[0.12em] uppercase text-muted-foreground">总请求数</span>
-                <div className="size-14 flex items-center justify-center rounded-[20px] bg-primary/12 text-primary">
-                  {statIcons.requests}
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">总请求数</span>
+                <div className="size-10 flex items-center justify-center rounded-xl bg-primary/12 text-primary">
+                  <Activity className="size-[18px]" />
                 </div>
               </div>
-              <div className="text-[clamp(34px,4vw,44px)] font-bold leading-none tracking-tighter">
+              <div className="text-[28px] font-bold leading-none tracking-tighter">
                 {formatTokens(totalRequests)}
               </div>
-              <div className="text-[13px] text-muted-foreground leading-relaxed">
-                <span className="text-[hsl(var(--success))]">● 成功请求: {formatTokens(successRequests)}</span>
-                <span className="ml-2 text-muted-foreground">● 今日请求: {formatTokens(todayRequests)}</span>
+              <div className="text-[12px] text-muted-foreground leading-relaxed">
+                <span className="text-[hsl(var(--success))]">● 成功: {formatTokens(successRequests)}</span>
+                <span className="ml-2 text-muted-foreground">● 今日: {formatTokens(todayRequests)}</span>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="flex flex-col gap-4 min-h-[180px] p-6">
+          <Card className="py-0">
+            <CardContent className="flex flex-col gap-2 p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold tracking-[0.12em] uppercase text-muted-foreground">总 Token 数</span>
-                <div className="size-14 flex items-center justify-center rounded-[20px] bg-[hsl(var(--info-bg))] text-[hsl(var(--info))]">
-                  {statIcons.tokens}
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">总 Token 数</span>
+                <div className="size-10 flex items-center justify-center rounded-xl bg-[hsl(var(--info-bg))] text-[hsl(var(--info))]">
+                  <Box className="size-[18px]" />
                 </div>
               </div>
-              <div className="text-[clamp(34px,4vw,44px)] font-bold leading-none tracking-tighter">
+              <div className="text-[28px] font-bold leading-none tracking-tighter">
                 {formatTokens(totalTokens)}
               </div>
-              <div className="text-[13px] text-muted-foreground leading-relaxed">
-                <span>输入 Tokens: {formatTokens(totalPromptTokens)}</span>
-                <span className="ml-2">输出 Tokens: {formatTokens(totalCompletionTokens)}</span>
+              <div className="text-[12px] text-muted-foreground leading-relaxed">
+                <span>输入: {formatTokens(totalPromptTokens)}</span>
+                <span className="ml-2">输出: {formatTokens(totalCompletionTokens)}</span>
               </div>
             </CardContent>
           </Card>
         </div>
 
         {/* Bottom stats: 3 columns */}
-        <div className="grid grid-cols-3 gap-4 mb-6 max-sm:grid-cols-1">
-          <Card>
-            <CardContent className="flex flex-col gap-4 min-h-[180px] p-6">
+        <div className="grid grid-cols-3 gap-3 mb-6 max-sm:grid-cols-1">
+          <Card className="py-0">
+            <CardContent className="flex flex-col gap-2 p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold tracking-[0.12em] uppercase text-muted-foreground">RPM</span>
-                <div className="size-14 flex items-center justify-center rounded-[20px] bg-[hsl(var(--success-bg))] text-[hsl(var(--success))]">
-                  {statIcons.rpm}
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">RPM</span>
+                <div className="size-10 flex items-center justify-center rounded-xl bg-[hsl(var(--success-bg))] text-[hsl(var(--success))]">
+                  <Clock className="size-[18px]" />
                 </div>
               </div>
-              <div className="text-[clamp(34px,4vw,44px)] font-bold leading-none tracking-tighter">
+              <div className="text-[28px] font-bold leading-none tracking-tighter">
                 {Math.round(rpm)}
               </div>
-              <div className="text-[13px] text-muted-foreground">每分钟请求数</div>
+              <div className="text-[12px] text-muted-foreground">每分钟请求数</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="flex flex-col gap-4 min-h-[180px] p-6">
+          <Card className="py-0">
+            <CardContent className="flex flex-col gap-2 p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold tracking-[0.12em] uppercase text-muted-foreground">TPM</span>
-                <div className="size-14 flex items-center justify-center rounded-[20px] bg-destructive/12 text-destructive">
-                  {statIcons.tpm}
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">TPM</span>
+                <div className="size-10 flex items-center justify-center rounded-xl bg-destructive/12 text-destructive">
+                  <Zap className="size-[18px]" />
                 </div>
               </div>
-              <div className="text-[clamp(34px,4vw,44px)] font-bold leading-none tracking-tighter">
+              <div className="text-[28px] font-bold leading-none tracking-tighter">
                 {formatTokens(tpm)}
               </div>
-              <div className="text-[13px] text-muted-foreground">每分钟 Token 数</div>
+              <div className="text-[12px] text-muted-foreground">每分钟 Token 数</div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="flex flex-col gap-4 min-h-[180px] p-6">
+          <Card className="py-0">
+            <CardContent className="flex flex-col gap-2 p-4">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-bold tracking-[0.12em] uppercase text-muted-foreground">错误率</span>
-                <div className="size-14 flex items-center justify-center rounded-[20px] bg-[hsl(36_72%_40%/0.12)] text-[hsl(36,72%,40%)]">
-                  {statIcons.error}
+                <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-muted-foreground">错误率</span>
+                <div className="size-10 flex items-center justify-center rounded-xl bg-[hsl(36_72%_40%/0.12)] text-[hsl(36,72%,40%)]">
+                  <AlertTriangle className="size-[18px]" />
                 </div>
               </div>
-              <div className="text-[clamp(34px,4vw,44px)] font-bold leading-none tracking-tighter">
+              <div className="text-[28px] font-bold leading-none tracking-tighter">
                 {errorRate.toFixed(1)}%
               </div>
-              <div className="text-[13px] text-muted-foreground">平均延迟: {Math.round(avgDurationMs)}ms</div>
+              <div className="text-[12px] text-muted-foreground">平均延迟: {Math.round(avgDurationMs)}ms</div>
             </CardContent>
           </Card>
         </div>
