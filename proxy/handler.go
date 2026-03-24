@@ -204,6 +204,17 @@ func (h *Handler) Responses(c *gin.Context) {
 		codexBody, _ = sjson.SetBytes(codexBody, "include", []string{"reasoning.encrypted_content"})
 	}
 
+	// 删除 Codex 不支持的参数（客户端可能传入）
+	unsupportedFields := []string{
+		"max_output_tokens", "max_tokens", "max_completion_tokens",
+		"temperature", "top_p", "frequency_penalty", "presence_penalty",
+		"logprobs", "top_logprobs", "n", "seed", "stop", "user",
+		"logit_bias", "response_format", "service_tier", "stream_options",
+	}
+	for _, field := range unsupportedFields {
+		codexBody, _ = sjson.DeleteBytes(codexBody, field)
+	}
+
 	// 3. 带重试的上游请求
 	var lastErr error
 	var lastStatusCode int
