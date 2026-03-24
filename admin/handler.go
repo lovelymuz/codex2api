@@ -37,6 +37,7 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 	api.POST("/accounts/:id/refresh", h.RefreshAccount)
 	api.GET("/usage/stats", h.GetUsageStats)
 	api.GET("/usage/logs", h.GetUsageLogs)
+	api.DELETE("/usage/logs", h.ClearUsageLogs)
 	api.GET("/keys", h.ListAPIKeys)
 	api.POST("/keys", h.CreateAPIKey)
 	api.DELETE("/keys/:id", h.DeleteAPIKey)
@@ -310,6 +311,18 @@ func (h *Handler) GetUsageLogs(c *gin.Context) {
 		logs = []*database.UsageLog{}
 	}
 	c.JSON(http.StatusOK, usageLogsResponse{Logs: logs})
+}
+
+// ClearUsageLogs 清空所有使用日志
+func (h *Handler) ClearUsageLogs(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	if err := h.db.ClearUsageLogs(ctx); err != nil {
+		writeInternalError(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "日志已清空"})
 }
 
 // ==================== API Keys ====================

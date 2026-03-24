@@ -469,6 +469,12 @@ func (db *DB) ListRecentUsageLogs(ctx context.Context, limit int) ([]*UsageLog, 
 	return logs, rows.Err()
 }
 
+// ClearUsageLogs 清空所有使用日志
+func (db *DB) ClearUsageLogs(ctx context.Context) error {
+	_, err := db.conn.ExecContext(ctx, `TRUNCATE TABLE usage_logs RESTART IDENTITY`)
+	return err
+}
+
 // ==================== Accounts ====================
 
 // ListActive 获取所有状态为 active 的账号

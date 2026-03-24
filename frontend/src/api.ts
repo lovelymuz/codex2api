@@ -70,4 +70,6 @@ export const api = {
     }),
   deleteAPIKey: (id: number) =>
     request<MessageResponse>(`/keys/${id}`, { method: 'DELETE' }),
+  clearUsageLogs: () =>
+    request<MessageResponse>('/usage/logs', { method: 'DELETE' }),
 }

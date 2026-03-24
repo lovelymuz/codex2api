@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api } from '../api'
 import PageHeader from '../components/PageHeader'
+import Pagination from '../components/Pagination'
 import StateShell from '../components/StateShell'
 import { useDataLoader } from '../hooks/useDataLoader'
 import { useToast } from '../hooks/useToast'
@@ -26,6 +27,9 @@ const statIcons: Record<string, ReactNode> = {
 
 export default function Usage() {
   const { toast, showToast } = useToast()
+  const [page, setPage] = useState(1)
+  const [clearing, setClearing] = useState(false)
+  const PAGE_SIZE = 20
 
   const loadUsageData = useCallback(async () => {
     const [stats, logsResponse] = await Promise.all([api.getUsageStats(), api.getUsageLogs(100)])
@@ -55,6 +59,8 @@ export default function Usage() {
   }, [reloadSilently])
 
   const { stats, logs } = data
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE))
+  const pagedLogs = useMemo(() => logs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [logs, page])
   const totalRequests = stats?.total_requests ?? 0
   const totalTokens = stats?.total_tokens ?? 0
   const totalPromptTokens = stats?.total_prompt_tokens ?? 0
@@ -144,6 +150,26 @@ export default function Usage() {
         <div className="flex-between mb-4">
           <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>请求记录</h3>
           <span className="table-meta">最近 {logs.length} 条</span>
+          <button
+            className="btn btn-danger btn-sm"
+            disabled={clearing || logs.length === 0}
+            onClick={async () => {
+              if (!confirm('确定清空所有使用日志吗？此操作不可恢复。')) return
+              setClearing(true)
+              try {
+                await api.clearUsageLogs()
+                showToast('日志已清空')
+                setPage(1)
+                void reload()
+              } catch (e) {
+                showToast(`清空失败: ${String(e)}`, 'error')
+              } finally {
+                setClearing(false)
+              }
+            }}
+          >
+            {clearing ? '清空中...' : '清空日志'}
+          </button>
         </div>
         <StateShell
           variant="section"
@@ -167,7 +193,7 @@ export default function Usage() {
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log) => (
+                {pagedLogs.map((log) => (
                   <tr key={log.id}>
                     <td>
                       <span className={`badge ${log.status_code < 400 ? 'badge-success' : log.status_code < 500 ? 'badge-warning' : 'badge-danger'}`} style={{ fontSize: 11 }}>
@@ -246,6 +272,13 @@ export default function Usage() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={logs.length}
+            pageSize={PAGE_SIZE}
+          />
         </StateShell>
       </div>
 

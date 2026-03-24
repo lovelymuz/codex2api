@@ -3,6 +3,7 @@ import { useCallback, useState } from 'react'
 import { api } from '../api'
 import Modal from '../components/Modal'
 import PageHeader from '../components/PageHeader'
+import Pagination from '../components/Pagination'
 import StateShell from '../components/StateShell'
 import StatusBadge from '../components/StatusBadge'
 import { useDataLoader } from '../hooks/useDataLoader'
@@ -13,11 +14,15 @@ import { formatRelativeTime } from '../utils/time'
 
 export default function Accounts() {
   const [showAdd, setShowAdd] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 20
   const [addForm, setAddForm] = useState<AddAccountRequest>({
     refresh_token: '',
     proxy_url: '',
   })
   const [submitting, setSubmitting] = useState(false)
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [batchLoading, setBatchLoading] = useState(false)
   const { toast, showToast } = useToast()
 
   const loadAccounts = useCallback(async () => {
@@ -30,11 +35,37 @@ export default function Accounts() {
     load: loadAccounts,
   })
 
-  const handleAdd = async () => {
-    if (!addForm.refresh_token.trim()) {
-      return
-    }
+  const totalPages = Math.max(1, Math.ceil(accounts.length / PAGE_SIZE))
+  const pagedAccounts = accounts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const allPageSelected = pagedAccounts.length > 0 && pagedAccounts.every((a) => selected.has(a.id))
 
+  const toggleSelect = (id: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (allPageSelected) {
+      setSelected((prev) => {
+        const next = new Set(prev)
+        for (const a of pagedAccounts) next.delete(a.id)
+        return next
+      })
+    } else {
+      setSelected((prev) => {
+        const next = new Set(prev)
+        for (const a of pagedAccounts) next.add(a.id)
+        return next
+      })
+    }
+  }
+
+  const handleAdd = async () => {
+    if (!addForm.refresh_token.trim()) return
     setSubmitting(true)
     try {
       const result = await api.addAccount(addForm)
@@ -50,10 +81,7 @@ export default function Accounts() {
   }
 
   const handleDelete = async (account: AccountRow) => {
-    if (!confirm(`确定删除账号 "${account.name || account.id}" 吗？`)) {
-      return
-    }
-
+    if (!confirm(`确定删除账号 "${account.email || account.id}" 吗？`)) return
     try {
       await api.deleteAccount(account.id)
       showToast('已删除')
@@ -71,6 +99,44 @@ export default function Accounts() {
     } catch (error) {
       showToast(`刷新失败: ${getErrorMessage(error)}`, 'error')
     }
+  }
+
+  const handleBatchDelete = async () => {
+    if (selected.size === 0) return
+    if (!confirm(`确定删除选中的 ${selected.size} 个账号吗？`)) return
+    setBatchLoading(true)
+    let success = 0
+    let fail = 0
+    for (const id of selected) {
+      try {
+        await api.deleteAccount(id)
+        success++
+      } catch {
+        fail++
+      }
+    }
+    showToast(`批量删除完成：成功 ${success}，失败 ${fail}`)
+    setSelected(new Set())
+    setBatchLoading(false)
+    void reload()
+  }
+
+  const handleBatchRefresh = async () => {
+    if (selected.size === 0) return
+    setBatchLoading(true)
+    let success = 0
+    let fail = 0
+    for (const id of selected) {
+      try {
+        await api.refreshAccount(id)
+        success++
+      } catch {
+        fail++
+      }
+    }
+    showToast(`批量刷新完成：成功 ${success}，失败 ${fail}`)
+    setBatchLoading(false)
+    void reload()
   }
 
   return (
@@ -96,18 +162,38 @@ export default function Accounts() {
           )}
         />
 
+      {selected.size > 0 && (
+        <div className="batch-bar">
+          <span>已选 {selected.size} 项</span>
+          <div className="btn-group">
+            <button className="btn btn-secondary btn-sm" disabled={batchLoading} onClick={() => void handleBatchRefresh()}>
+              批量刷新
+            </button>
+            <button className="btn btn-danger btn-sm" disabled={batchLoading} onClick={() => void handleBatchDelete()}>
+              批量删除
+            </button>
+            <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>
+              取消选择
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="card">
         <StateShell
           variant="section"
           isEmpty={accounts.length === 0}
           emptyTitle="还没有账号"
-          emptyDescription="导入 Refresh Token 后，账号会立即加入代理池并显示在这里。"
+          emptyDescription="导入 Refresh Token 后，账号会立即加入号池并显示在这里。"
           action={<button className="btn btn-primary" onClick={() => setShowAdd(true)}>添加账号</button>}
         >
           <div className="table-container">
             <table>
               <thead>
                 <tr>
+                  <th style={{ width: 40 }}>
+                    <input type="checkbox" checked={allPageSelected} onChange={toggleSelectAll} />
+                  </th>
                   <th>ID</th>
                   <th>邮箱</th>
                   <th>套餐</th>
@@ -117,8 +203,11 @@ export default function Accounts() {
                 </tr>
               </thead>
               <tbody>
-                {accounts.map((account) => (
-                  <tr key={account.id}>
+                {pagedAccounts.map((account) => (
+                  <tr key={account.id} className={selected.has(account.id) ? 'row-selected' : ''}>
+                    <td>
+                      <input type="checkbox" checked={selected.has(account.id)} onChange={() => toggleSelect(account.id)} />
+                    </td>
                     <td className="text-mono text-muted">{account.id}</td>
                     <td className="text-secondary">{account.email || '-'}</td>
                     <td><span className="text-mono">{account.plan_type || '-'}</span></td>
@@ -141,6 +230,13 @@ export default function Accounts() {
               </tbody>
             </table>
           </div>
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            onPageChange={setPage}
+            totalItems={accounts.length}
+            pageSize={PAGE_SIZE}
+          />
         </StateShell>
       </div>
 

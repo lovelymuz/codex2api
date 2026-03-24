@@ -1348,3 +1348,62 @@ textarea.form-input {
     scroll-behavior: auto !important;
   }
 }
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0 0;
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.pagination-info {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-page {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  min-width: 60px;
+  text-align: center;
+}
+
+.batch-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 18px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-bg);
+  border: 1px solid rgba(108, 92, 231, 0.2);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.batch-bar .btn-group {
+  gap: 6px;
+}
+
+tr.row-selected {
+  background: rgba(108, 92, 231, 0.05) !important;
+}
+
+table input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
